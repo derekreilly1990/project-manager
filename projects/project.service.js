@@ -1,13 +1,9 @@
-﻿const config = require("config.json");
-const jwt = require("jsonwebtoken");
-const bcrypt = require("bcryptjs");
-const crypto = require("crypto");
-const sendEmail = require("_helpers/send-email");
-const db = require("_helpers/db");
-const Role = require("_helpers/role");
+﻿const db = require("_helpers/db");
+const moment = require("moment");
 
 module.exports = {
   getAll,
+  getAllByManagerId,
   getById,
   create,
   update,
@@ -15,7 +11,15 @@ module.exports = {
 };
 
 async function getAll() {
-  const projects = await db.Project.find();
+  const projects = await db.Project.find().populate("manager");
+  return projects.map((x) => basicDetails(x));
+}
+
+async function getAllByManagerId(id) {
+  const projects = await db.Project.find({
+    manager: id,
+  }).populate("manager");
+
   return projects.map((x) => basicDetails(x));
 }
 
@@ -68,7 +72,7 @@ async function _delete(id) {
 async function getProject(id) {
   if (!db.isValidId(id)) throw "Project not found";
   const project = await db.Project.findById(id);
-  if (!project) throw "Account not found";
+  if (!project) throw "Project not found";
   return project;
 }
 
@@ -80,6 +84,9 @@ function basicDetails(account) {
     progress,
     description,
     mainImageUrl,
+    startDate,
+    expectedEndDate,
+    manager,
   } = account;
   return {
     id,
@@ -88,5 +95,8 @@ function basicDetails(account) {
     progress,
     description,
     mainImageUrl,
+    startDate: moment(startDate).format("yyyy-MM-DD"),
+    expectedEndDate: moment(expectedEndDate).format("yyyy-MM-DD"),
+    manager,
   };
 }

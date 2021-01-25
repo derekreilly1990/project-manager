@@ -7,9 +7,10 @@ const Role = require("_helpers/role");
 const projectService = require("./project.service");
 
 // routes
-router.get("/", authorize(Role.Admin), getAll);
+router.get("/", authorize([Role.Admin, Role.Manager]), getAll);
+router.get("/manager/:id", authorize(), getAllByManagerId);
 router.get("/:id", authorize(), getById);
-router.post("/", authorize(Role.Admin), createSchema, create);
+router.post("/", authorize([Role.Admin, Role.Manager]), createSchema, create);
 router.put("/:id", authorize(), updateSchema, update);
 router.delete("/:id", authorize(), _delete);
 
@@ -21,12 +22,18 @@ function getAll(req, res, next) {
     .then((projects) => res.json(projects))
     .catch(next);
 }
+function getAllByManagerId(req, res, next) {
+  projectService
+    .getAllByManagerId(req.params.id)
+    .then((projects) => res.json(projects))
+    .catch(next);
+}
 
 function getById(req, res, next) {
   // users/managers can get their own account and admins can get any account
-  if (req.params.id !== req.user.id && req.user.role !== Role.Admin) {
+  /*if (req.user.role !== Role.Admin) {
     return res.status(401).json({ message: "Unauthorized" });
-  }
+  }*/
 
   projectService
     .getById(req.params.id)
@@ -38,6 +45,8 @@ function createSchema(req, res, next) {
   const schema = Joi.object({
     title: Joi.string().required(),
     description: Joi.string().required(),
+    managerName: Joi.string().required(),
+    manager: Joi.string().required(),
     mainImageUrl: Joi.string().required(),
     startDate: Joi.date().required(),
     progress: Joi.number().required(),
@@ -49,7 +58,7 @@ function createSchema(req, res, next) {
 function create(req, res, next) {
   projectService
     .create(req.body)
-    .then((account) => res.json(account))
+    .then((project) => res.json(project))
     .catch(next);
 }
 
@@ -57,10 +66,13 @@ function updateSchema(req, res, next) {
   const schemaRules = {
     title: Joi.string().empty(""),
     description: Joi.string().empty(""),
+    managerName: Joi.string().empty(""),
+    manager: Joi.string().empty(""),
     mainImageUrl: Joi.string().empty(""),
     startDate: Joi.date().empty(""),
     progress: Joi.number().empty(""),
-    expectedEndDate: Joi.string().empty(""),
+    expectedEndDate: Joi.date().empty(""),
+    actualEndDate: Joi.date().empty(""),
   };
 
   // only admins can update role
@@ -73,8 +85,7 @@ function updateSchema(req, res, next) {
 }
 
 function update(req, res, next) {
-  // users can update their own account and admins can update any account
-  if (req.params.id !== req.user.id && req.user.role !== Role.Admin) {
+  if (req.body.manager !== req.user.id && req.user.role !== Role.Admin) {
     return res.status(401).json({ message: "Unauthorized" });
   }
 
@@ -86,9 +97,6 @@ function update(req, res, next) {
 
 function _delete(req, res, next) {
   // users can delete their own account and admins can delete any account
-  if (req.params.id !== req.user.id && req.user.role !== Role.Admin) {
-    return res.status(401).json({ message: "Unauthorized" });
-  }
 
   projectService
     .delete(req.params.id)
