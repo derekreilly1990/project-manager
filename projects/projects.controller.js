@@ -12,6 +12,7 @@ router.get("/manager/:id", authorize(), getAllByManagerId);
 router.get("/:id", authorize(), getById);
 router.post("/", authorize([Role.Admin, Role.Manager]), createSchema, create);
 router.put("/:id", authorize(), updateSchema, update);
+router.put("/:id", authorize(), updateSubscribersSchema, updateSubscribers);
 router.delete("/:id", authorize(), _delete);
 
 module.exports = router;
@@ -80,7 +81,16 @@ function updateSchema(req, res, next) {
     schemaRules.role = Joi.string().valid(Role.Admin, Role.User).empty("");
   }*/
 
-  const schema = Joi.object(schemaRules).with("password", "confirmPassword");
+  const schema = Joi.object(schemaRules);
+  validateRequest(req, next, schema);
+}
+
+function updateSubscribersSchema(req, res, next) {
+  const schemaRules = {
+    subscriberID: Joi.string().empty(""),
+  };
+
+  const schema = Joi.object(schemaRules);
   validateRequest(req, next, schema);
 }
 
@@ -91,7 +101,17 @@ function update(req, res, next) {
 
   projectService
     .update(req.params.id, req.body)
-    .then((account) => res.json(account))
+    .then((project) => res.json(project))
+    .catch(next);
+}
+function updateSubscribers(req, res, next) {
+  /*if (req.body.manager !== req.user.id && req.user.role !== Role.Admin) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }*/
+
+  projectService
+    .updateSubscribers(req.params.id, req.body)
+    .then((project) => res.json(project))
     .catch(next);
 }
 

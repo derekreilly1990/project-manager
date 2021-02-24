@@ -7,6 +7,7 @@ module.exports = {
   getById,
   create,
   update,
+  updateSubscribers,
   delete: _delete,
 };
 
@@ -56,6 +57,19 @@ async function update(id, params) {
 
   // copy params to account and save
   Object.assign(project, params);
+  project.updated = Date.now();
+  await project.save();
+
+  return basicDetails(project);
+}
+
+async function updateSubscribers(id, params, isAdding) {
+  const project = await getProject(id);
+
+  console.log("adding subscriber", project, isAdding);
+  //if(project.subscribers.length )
+  // copy params to account and save
+  //Object.assign(project, params);
   project.updated = Date.now();
   await project.save();
 
